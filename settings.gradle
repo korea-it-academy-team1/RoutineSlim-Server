@@ -1,1 +1,19 @@
-rootProject.name = 'server'
+# application.yml
+spring:
+    application:
+    name: routineslim
+datasource:
+url: jdbc:postgresql://localhost:5432/routineslim
+username: routineslim
+password: ${DB_PASSWORD}
+jpa:
+hibernate:
+ddl-auto: validate
+properties:
+hibernate:
+format_sql: true
+flyway:
+locations: classpath:db/migration
+
+server:
+port: 8080
