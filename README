@@ -2,4 +2,14 @@
 
 코리아아카데미 1조 백엔드
 
-text.권기쁨
+## 폴더 구조 (RoutineSlim-Server)
+
+database/
+\_RoutineSlime-Server.sql
+src/
+\_ main
+    \_ java
+    |    \_ org.routineslim
+    |               \_ 도메인별 분기
+    \_ resources
+            \_ application.yml
