@@ -14,26 +14,26 @@ RoutineSlim-Server/
    │  │     │  ├─ config/             # DB, Security, Web 설정
    │  │     │  ├─ security/           # JWT 발급·검증, 인증 필터
    │  │     │  ├─ exception/          # 공통 예외, 전역 예외 처리
-   │  │     │  ├─ common/             # 공통 응답 형식, BaseEntity(JPA Auditing: created_at, updated_at)
-   │  │     │  └─ util/               # UUID v7 생성, 결제일 계산(말일 보정)
-   │  │     └─ domain/                # 기능(도메인)별 패키지
-   │  │        ├─ auth/               # 로그인, 회원가입, 토큰 재발급 (refresh_tokens)
-   │  │        ├─ user/               # 회원 정보, 알림 기본 설정 (users)
+   │  │     │  ├─ common/             # 공통 응답 형식, BaseEntity( )
+   │  │     │  └─ util/               # UUID v7 생성, 결제일 계산( )
+   │  │     └─ domain/                # 기능별 패키지
+   │  │        ├─ auth/               # 로그인, 회원가입, 토큰 재발급 ( )
+   │  │        ├─ user/               # 회원 정보, 알림 기본 설정 ( )
    │  │        ├─ subscription/       # 구독 등록·수정, 청구 기록 (남현서)
-   │  │        ├─ preset/             # 인기 서비스 프리셋 (service_presets)
-   │  │        ├─ category/           # 카테고리 (categories)
-   │  │        ├─ paymentmethod/      # 결제 수단 (payment_methods) - MVP 포함 여부 미정
-   │  │        ├─ stats/              # 월 고정비 통계 (테이블 없음, 집계)
-   │  │        ├─ device/             # FCM 토큰, 동기화 (devices) - 2단계
-   │  │        └─ recommendation/     # 해지·절약 추천 (recommendations) - 2단계
+   │  │        ├─ preset/             # 인기 서비스 프리셋 ( )
+   │  │        ├─ category/           # 카테고리 ( )
+   │  │        ├─ paymentmethod/      # 결제 수단 ( ) - MVP 포함 여부 미정
+   │  │        ├─ stats/              # 월 고정비 통계 ( )
+   │  │        ├─ device/             # FCM 토큰, 동기화 ( ) - 2단계
+   │  │        └─ recommendation/     # 해지·절약 추천 ( ) - 2단계
    │  └─ resources/
    │     ├─ db/
-   │     │  └─ migration/             # Flyway 마이그레이션 (MySQL 8.0)
+   │     │  └─ migration/             # Flyway 마이그레이션 ( )
    │     │     ├─ V1__init.sql        # 테이블 생성
    │     │     └─ V2__seed_categories_presets.sql  # 기본 카테고리·프리셋 데이터
    │     ├─ application.yml           # 공통 설정
-   │     ├─ application-local.yml     # 로컬 개발용 (Git에 올리지 않음)
-   │     └─ application-prod.yml      # 서버 배포용 (비밀값은 환경 변수로)
+   │     ├─ application-local.yml     # 로컬 개발용 ( )
+   │     └─ application-prod.yml      # 서버 배포용 ( )
    └─ test/
       └─ java/
          └─ org/routineslim/          # main과 같은 패키지 구조로 테스트 작성
