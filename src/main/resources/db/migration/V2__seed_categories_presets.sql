@@ -7,16 +7,7 @@
 	`expense_date`	DATE	NOT NULL
 );
 
-CREATE TABLE `member` (
-	`member_id`	BINARY(16)	NOT NULL	COMMENT 'AUTO_INCREMENT',
-	`member_name`	VARCHAR(200)	NOT NULL	DEFAULT UNIQUE,
-	`member_password`	VARCHAR(255)	NOT NULL,
-	`name`	VARCHAR(50)	NOT NULL,
-	`email`	VARCHAR(255)	NOT NULL	DEFAULT UNIQUE,
-	`phone`	VARCHAR(30)	NULL,
-	`created_at`	DATETIME	NOT NULL,
-	`updated_at`	DATETIME	NULL
-);
+
 
 CREATE TABLE `schedule` (
 	`schedule_id`	BIGINT	NOT NULL	COMMENT 'AUTO_INCREMENT',
@@ -128,10 +119,6 @@ CREATE TABLE `post` (
 
 ALTER TABLE `expense` ADD CONSTRAINT `PK_EXPENSE` PRIMARY KEY (
 	`expense_id`
-);
-
-ALTER TABLE `member` ADD CONSTRAINT `PK_MEMBER` PRIMARY KEY (
-	`member_id`
 );
 
 ALTER TABLE `schedule` ADD CONSTRAINT `PK_SCHEDULE` PRIMARY KEY (
