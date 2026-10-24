@@ -19,7 +19,7 @@ RoutineSlim-Server/
    │  │     └─ domain/                # 기능(도메인)별 패키지
    │  │        ├─ auth/               # 로그인, 회원가입, 토큰 재발급 (refresh_tokens)
    │  │        ├─ user/               # 회원 정보, 알림 기본 설정 (users)
-   │  │        ├─ subscription/       # 구독 등록·수정, 청구 기록 (subscriptions, payments)
+   │  │        ├─ subscription/       # 구독 등록·수정, 청구 기록 (남현서)
    │  │        ├─ preset/             # 인기 서비스 프리셋 (service_presets)
    │  │        ├─ category/           # 카테고리 (categories)
    │  │        ├─ paymentmethod/      # 결제 수단 (payment_methods) - MVP 포함 여부 미정
