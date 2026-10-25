@@ -1,10 +1,10 @@
-package org.routineslim.server;
+package org.routineslim;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ServerApplicationTests {
+class RoutineSlimApplicationTests {
 
 	@Test
 	void contextLoads() {

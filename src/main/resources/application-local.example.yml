@@ -1,0 +1,10 @@
+# 로컬 개발용 설정 예시.
+# 이 파일을 복사해 application-local.yml 로 이름을 바꾸고 각자 값에 맞게 고친다.
+# application-local.yml 은 Git에 올리지 않는다 (.gitignore).
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/routineslim?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: routineslim
+    password: ${DB_PASSWORD:routineslim}
+  jpa:
+    show-sql: true

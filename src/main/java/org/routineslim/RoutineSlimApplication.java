@@ -1,13 +1,13 @@
-package org.routineslim.server;
+package org.routineslim;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ServerApplication {
+public class RoutineSlimApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ServerApplication.class, args);
+		SpringApplication.run(RoutineSlimApplication.class, args);
 	}
 
 }

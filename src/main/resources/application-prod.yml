@@ -1,0 +1,12 @@
+# 서버 배포용 설정. 비밀값은 파일에 적지 않고 환경 변수로 넣는다.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+
+server:
+  # Nginx 뒤에서 실행되므로 X-Forwarded-* 헤더를 신뢰한다
+  forward-headers-strategy: framework

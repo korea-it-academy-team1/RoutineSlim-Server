@@ -1,4 +1,4 @@
-# RoutineSlime-Server
+# RoutineSlim-Server
 
 코리아아카데미 1조 백엔드
 
@@ -32,8 +32,8 @@ RoutineSlim-Server/
    │     │     ├─ V1__init.sql        # 테이블 생성
    │     │     └─ V2__seed_categories_presets.sql  # 기본 카테고리·프리셋 데이터
    │     ├─ application.yml           # 공통 설정
-   │     ├─ application-local.yml     # 로컬 개발용 ( )
-   │     └─ application-prod.yml      # 서버 배포용 ( )
+   │     ├─ application-local.yml     # 로컬 개발용 (Git에 올리지 않음, application-local.example.yml 복사)
+   │     └─ application-prod.yml      # 서버 배포용 (비밀값은 환경 변수로)
    └─ test/
       └─ java/
          └─ org/routineslim/          # main과 같은 패키지 구조로 테스트 작성

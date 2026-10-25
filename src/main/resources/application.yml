@@ -1,19 +1,23 @@
-# application.yml
+# 공통 설정. 환경별 값은 application-local.yml / application-prod.yml 에 둔다.
 spring:
   application:
-  name: routineslim
-datasource:
-url: jdbc:postgresql://localhost:5432/routineslim
-username: routineslim
-password: ${DB_PASSWORD}
-jpa:
-hibernate:
-ddl-auto: validate
-properties:
-hibernate:
-format_sql: true
-flyway:
-locations: classpath:db/migration
+    name: routineslim
+  profiles:
+    # 따로 지정하지 않으면 local 프로필로 실행한다 (서버에서는 SPRING_PROFILES_ACTIVE=prod)
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 테이블은 Flyway 마이그레이션으로만 만들고, JPA는 엔티티와 테이블이 맞는지만 검사한다
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 server:
-port: 8080
+  port: 8080
