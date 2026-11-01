@@ -1,0 +1,82 @@
+### 구독 API 호출 예시 (IntelliJ HTTP Client: 왼쪽 ▶ 버튼으로 실행)
+# 인증이 붙기 전까지 X-Member-Id 에 member 테이블의 회원 UUID를 넣는다.
+# 테스트 회원 만들기 (MySQL):
+#   INSERT INTO member (member_id, member_name, member_password, name)
+#   VALUES (UUID_TO_BIN('01890a5d-ac96-774b-bcce-b302099a8057'), 'tester', 'x', '테스터');
+
+@host = http://localhost:8080
+@memberId = 01890a5d-ac96-774b-bcce-b302099a8057
+
+### 구독 등록 (카테고리 1 = OTT, 프리셋 1 = 넷플릭스)
+POST {{host}}/api/v1/subscriptions
+X-Member-Id: {{memberId}}
+Content-Type: application/json
+
+{
+  "name": "넷플릭스",
+  "categoryId": 1,
+  "presetId": 1,
+  "amount": 17000,
+  "billingCycle": "MONTHLY",
+  "startDate": "2026-01-31",
+  "memo": "가족 공유"
+}
+
+> {% client.global.set("subscriptionId", response.body.id); %}
+
+### 내 구독 목록 (다음 결제일 순)
+GET {{host}}/api/v1/subscriptions
+X-Member-Id: {{memberId}}
+
+### 상태로 거르기
+GET {{host}}/api/v1/subscriptions?status=ACTIVE
+X-Member-Id: {{memberId}}
+
+### 구독 하나
+GET {{host}}/api/v1/subscriptions/{{subscriptionId}}
+X-Member-Id: {{memberId}}
+
+### 구독 수정 (전체 교체)
+PUT {{host}}/api/v1/subscriptions/{{subscriptionId}}
+X-Member-Id: {{memberId}}
+Content-Type: application/json
+
+{
+  "name": "넷플릭스 스탠다드",
+  "categoryId": 1,
+  "presetId": 1,
+  "amount": 13500,
+  "billingCycle": "MONTHLY",
+  "startDate": "2026-01-31"
+}
+
+### 일시 정지
+PATCH {{host}}/api/v1/subscriptions/{{subscriptionId}}/status
+X-Member-Id: {{memberId}}
+Content-Type: application/json
+
+{ "status": "PAUSED" }
+
+### 해지
+PATCH {{host}}/api/v1/subscriptions/{{subscriptionId}}/status
+X-Member-Id: {{memberId}}
+Content-Type: application/json
+
+{ "status": "CANCELED" }
+
+### 삭제 (잘못 등록한 구독 숨기기)
+DELETE {{host}}/api/v1/subscriptions/{{subscriptionId}}
+X-Member-Id: {{memberId}}
+
+### 영수증 스캔 → 등록 초안 (저장하지 않음)
+# http 폴더에 receipt.png 를 두고 실행한다. clova.ocr.url / secret 설정이 없으면 503.
+POST {{host}}/api/v1/subscriptions/scan
+X-Member-Id: {{memberId}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="image"; filename="receipt.png"
+Content-Type: image/png
+
+< ./receipt.png
+--boundary--
