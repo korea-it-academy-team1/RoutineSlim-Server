@@ -34,7 +34,6 @@ public class SocialAccount {
     private User member;
 
     // 소셜 로그인 제공업체
-    @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 20)
     private SocialProvider provider;
 

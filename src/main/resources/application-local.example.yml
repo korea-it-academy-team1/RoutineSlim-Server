@@ -1,19 +1,10 @@
 # 로컬 개발용 설정 예시.
 # 이 파일을 복사해 application-local.yml 로 이름을 바꾸고 각자 값에 맞게 고친다.
 # application-local.yml 은 Git에 올리지 않는다 (.gitignore).
-# application-local.yml (Git 제외)
 spring:
   datasource:
-    url: jdbc:mysql://routineslim-db-routineslim.k.aivencloud.com:22960/routineslim?sslMode=REQUIRED&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/routineslim?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: routineslim
-    password: ${DB_PASSWORD}
-    hikari:
-      maximum-pool-size: 3
-      minimum-idle: 1
+    password: ${DB_PASSWORD:routineslim}
   jpa:
     show-sql: true
-# CLOVA OCR (영수증 스캔). 네이버 클라우드 콘솔 > CLOVA OCR > 영수증 도메인 > API Gateway 연동 값
-clova:
-  ocr:
-    url: https://xxxx.apigw.ntruss.com/custom/v1/{도메인ID}/{InvokeKey}/document/receipt
-    secret: 발급받은_Secret_Key
