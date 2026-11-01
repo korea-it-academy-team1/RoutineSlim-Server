@@ -15,9 +15,23 @@ spring:
         format_sql: true
         jdbc:
           time_zone: Asia/Seoul
+        # [DB - 이대수] UUID 를 항상 BINARY(16) 으로 다룬다 (V1__init.sql 의 member_id 컬럼 형식).
+        # MySQL 은 원래 이 방식이고, 테스트용 H2 는 기본값이 UUID 전용 형식이라 맞춰 준다.
+        type:
+          preferred_uuid_jdbc_type: BINARY
   flyway:
     enabled: true
     locations: classpath:db/migration
 
 server:
   port: 8080
+
+# [JWT 로그인 - 이대수] 로그인 토큰 설정 (global/security/JwtProperties 로 읽는다)
+# 서명 키(jwt.secret)는 환경별 파일에 넣는다: local = application-local.yml, prod = 환경 변수 JWT_SECRET
+# 1번 방식에서는 쓰지 않아 주석 처리. JWT 로 바꿀 때 아래 줄 맨 앞의 # 한 글자만 지운다 (들여쓰기 2칸 유지)
+#jwt:
+#  # access token 수명. 짧을수록 안전하고, 만료되면 refresh token 으로 다시 받는다
+#  access-token-validity: 30m
+#  # refresh token 수명: 로그인 상태 유지를 켰을 때 / 껐을 때
+#  refresh-token-validity: 14d
+#  refresh-token-validity-short: 1d

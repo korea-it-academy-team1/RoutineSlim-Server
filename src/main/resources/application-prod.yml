@@ -10,3 +10,9 @@ spring:
 server:
   # Nginx 뒤에서 실행되므로 X-Forwarded-* 헤더를 신뢰한다
   forward-headers-strategy: framework
+
+# [JWT 로그인 - 이대수] 토큰 서명 키. 32자 이상 임의 문자열을 환경 변수 JWT_SECRET 으로 넣는다
+# 키가 바뀌면 이미 발급된 access token 은 모두 무효가 된다
+# (1번 방식에서는 쓰지 않음. JWT 로 바꿀 때 아래 두 줄 맨 앞의 # 한 글자만 지운다)
+#jwt:
+#  secret: ${JWT_SECRET}

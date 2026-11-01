@@ -2,6 +2,8 @@ package org.routineslim.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -54,6 +56,9 @@ public class User {
     private String phone;
 
     // 기본 알림 일수
+    // [버그 수정 - 이대수] DB 컬럼이 TINYINT 라서 형식을 맞춘다. 없으면 ddl-auto: validate 에서
+    // "found [tinyint], but expecting [integer]" 오류로 서버가 시작되지 않는다
+    @JdbcTypeCode(SqlTypes.TINYINT)
     @Builder.Default
     @Column(name = "default_notify_days", nullable = false)
     private Integer defaultNotifyDays = 3;

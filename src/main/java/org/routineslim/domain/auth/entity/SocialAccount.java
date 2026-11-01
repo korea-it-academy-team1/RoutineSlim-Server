@@ -34,6 +34,9 @@ public class SocialAccount {
     private User member;
 
     // 소셜 로그인 제공업체
+    // [버그 수정 - 이대수] enum 을 이름("GOOGLE", "KAKAO")으로 저장한다 (DB 컬럼이 VARCHAR).
+    // 없으면 순서 번호(0, 1, 2)로 저장하려 해서 ddl-auto: validate 에서 서버가 시작되지 않는다
+    @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 20)
     private SocialProvider provider;
 
