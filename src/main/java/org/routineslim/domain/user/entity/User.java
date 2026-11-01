@@ -55,7 +55,7 @@ public class User {
 
     // 기본 알림 일수
     @Builder.Default
-    @Column(name = "default_notify_days", nullable = false)
+    @Column(name = "default_notify_days", nullable = false, columnDefinition = "tinyint unsigned")
     private Integer defaultNotifyDays = 3;
 
     // 알림 시간
