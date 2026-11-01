@@ -1,0 +1,11 @@
+# [JWT 로그인 - 이대수] 테스트 전용 설정 (@ActiveProfiles("test") 일 때 사용)
+# MySQL 없이 메모리 H2 DB 를 MySQL 호환 모드로 띄우고 Flyway 마이그레이션(V1~)을 그대로 적용한다
+spring:
+  datasource:
+    url: jdbc:h2:mem:routineslim;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+
+# [JWT 로그인 - 이대수] 테스트용 토큰 서명 키 (32자 이상). JWT 로 바꿀 때 아래 두 줄 맨 앞의 # 한 글자만 지운다
+#jwt:
+#  secret: test-secret-key-routineslim-0123456789abcdef
