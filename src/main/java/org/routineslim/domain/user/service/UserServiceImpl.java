@@ -3,10 +3,13 @@ package org.routineslim.domain.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.routineslim.domain.user.dto.UserDTO;
+import org.routineslim.domain.user.dto.UserResponseDTO;
 import org.routineslim.domain.user.entity.User;
 import org.routineslim.domain.user.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -88,5 +91,16 @@ public class UserServiceImpl implements UserService{
 
         // 탈퇴 날짜 저장
         user.setDeletedAt(LocalDateTime.now());
+    }
+
+    // 회원정보 조회
+    @Override
+    public UserResponseDTO getUser(UUID memberId) {
+        return userRepository.findById(memberId)
+                // 탈퇴(deleted_at 있음)한 회원은 조회되지 않게 한다
+                .filter(user -> user.getDeletedAt() == null)
+                .map(UserResponseDTO::from)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 }
