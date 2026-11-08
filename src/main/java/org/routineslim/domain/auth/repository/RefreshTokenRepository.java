@@ -6,14 +6,14 @@ package org.routineslim.domain.auth.repository;
  * 전체 순서는 docs/jwt-switch-guide.md
  */
 
-//import org.routineslim.domain.auth.entity.RefreshToken;
-//import org.springframework.data.jpa.repository.JpaRepository;
-//
-//import java.util.Optional;
-//
-//// [JWT 로그인 - 이대수] refresh token 저장소
-//public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-//
-//    // 앱/웹이 보낸 토큰 원문을 해시한 값으로 저장된 토큰을 찾는다
-//    Optional<RefreshToken> findByTokenHash(String tokenHash);
-//}
+import org.routineslim.domain.auth.entity.RefreshToken;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+// [JWT 로그인 - 이대수] refresh token 저장소
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+
+    // 앱/웹이 보낸 토큰 원문을 해시한 값으로 저장된 토큰을 찾는다
+    Optional<RefreshToken> findByTokenHash(String tokenHash);
+}

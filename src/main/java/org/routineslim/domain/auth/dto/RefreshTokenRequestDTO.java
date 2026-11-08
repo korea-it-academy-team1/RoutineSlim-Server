@@ -6,16 +6,16 @@ package org.routineslim.domain.auth.dto;
  * 전체 순서는 docs/jwt-switch-guide.md
  */
 
-//import lombok.*;
-//
-//// [JWT 로그인 - 이대수] 토큰 재발급(POST /auth/refresh)·로그아웃(POST /auth/logout) 요청
-//@Getter
-//@Setter
-//@NoArgsConstructor
-//@AllArgsConstructor
-//@Builder
-//public class RefreshTokenRequestDTO {
-//
-//    // 로그인 때 받은 refresh token 원문
-//    private String refreshToken;
-//}
+import lombok.*;
+
+// [JWT 로그인 - 이대수] 토큰 재발급(POST /auth/refresh)·로그아웃(POST /auth/logout) 요청
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RefreshTokenRequestDTO {
+
+    // 로그인 때 받은 refresh token 원문
+    private String refreshToken;
+}
