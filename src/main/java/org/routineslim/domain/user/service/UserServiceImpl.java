@@ -2,6 +2,7 @@ package org.routineslim.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.routineslim.domain.user.dto.NotificationSettingsRequestDTO;
 import org.routineslim.domain.user.dto.UserDTO;
 import org.routineslim.domain.user.dto.UserResponseDTO;
 import org.routineslim.domain.user.entity.User;
@@ -83,7 +84,7 @@ public class UserServiceImpl implements UserService{
     @Override
     public void withdrawUser(UUID memberId) {
 
-        // 회원번호로 회원 조회
+        // 탈퇴하지 않은 회원 조회
         User user = userRepository.findByMemberIdAndDeletedAtIsNull(memberId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("회원을 찾을 수 없습니다.")
@@ -102,5 +103,38 @@ public class UserServiceImpl implements UserService{
                 .map(UserResponseDTO::from)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+    }
+
+    @Override
+    public void updateNotificationSettings(UUID memberId, NotificationSettingsRequestDTO notificationSettingsRequestDTO) {
+
+        // 탈퇴하지 않은 회원 조회
+        User user = userRepository.findByMemberIdAndDeletedAtIsNull(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("회원을 찾을 수 없습니다.")
+                );
+
+        // 알림 일수 입력 검사
+        if (notificationSettingsRequestDTO.getDefaultNotificationDays() == null) {
+            throw new IllegalArgumentException("알림 일수를 입력해주세요.");
+        }
+
+        // 알림 일수 범위 검사 (0~30일)
+        if (notificationSettingsRequestDTO.getDefaultNotificationDays() < 0 ||
+                notificationSettingsRequestDTO.getDefaultNotificationDays() > 30) {
+            throw new IllegalArgumentException("알림 일수는 0~30일 사이여야 합니다.");
+        }
+
+        // 알림 시간 입력 검사
+        if (notificationSettingsRequestDTO.getNotificationTime() == null) {
+            throw new IllegalArgumentException("알림 시간을 입력해주세요.");
+        }
+
+        // 알림 설정 수정
+        user.setDefaultNotifyDays(notificationSettingsRequestDTO.getDefaultNotificationDays());
+        user.setNotifyTime(notificationSettingsRequestDTO.getNotificationTime());
+
+        // 회원정보 저장
+        userRepository.save(user);
     }
 }

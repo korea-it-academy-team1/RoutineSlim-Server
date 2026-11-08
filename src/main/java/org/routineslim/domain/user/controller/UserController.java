@@ -2,6 +2,7 @@ package org.routineslim.domain.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.routineslim.domain.user.dto.NotificationSettingsRequestDTO;
 import org.routineslim.domain.user.dto.UserDTO;
 import org.routineslim.domain.user.dto.UserResponseDTO;
 import org.routineslim.domain.user.service.UserService;
@@ -59,5 +60,18 @@ public class UserController {
     @GetMapping("/me")
     public UserResponseDTO me(@AuthenticationPrincipal Jwt jwt) {
         return userService.getUser(UUID.fromString(jwt.getSubject()));
+    }
+
+    // 알림수정
+    @PutMapping("/notification-settings")
+    public void updateNotificationSettings(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody NotificationSettingsRequestDTO notificationSettingsRequestDTO) {
+
+        // JWT에서 로그인한 회원 ID 가져오기
+        UUID memberId = UUID.fromString(jwt.getSubject());
+
+        // Service에 알림 설정 수정 요청
+        userService.updateNotificationSettings(memberId, notificationSettingsRequestDTO);
     }
 }
