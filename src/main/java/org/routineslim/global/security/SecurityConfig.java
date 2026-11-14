@@ -44,8 +44,8 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/social/login",
 //                                // [JWT 로그인 - 이대수] 토큰 재발급·로그아웃은 access token 이 만료된 상태에서도 불러야 하므로 연다
-                                "/auth/refresh",
-                                "/auth/logout",
+//                                "/auth/refresh",
+//                                "/auth/logout",
                                 // [로그인 - 이대수] 오류 응답(401, 404 등)이 Security 에 막혀 내용 없이 오는 것을 막는다
                                 "/error",
                                 // [로컬 개발 - 이대수] H2 DB 콘솔. spring.h2.console.enabled=true 인 local 에서만 실제로 열린다
@@ -53,10 +53,10 @@ public class SecurityConfig {
 
                         // [1번 임시 - 이대수] 토큰 검사가 없으므로 나머지 API 도 모두 연다
                         // (회원 구분은 각 API 가 X-Member-Id 헤더로 한다. 보안 없음 → 시연용)
-//                        .anyRequest().permitAll()
+                        .anyRequest().permitAll()
 
 //                        // [JWT 로그인 - 이대수] 나머지 API 는 로그인(유효한 access token)이 있어야 호출된다
-                        .anyRequest().authenticated()
+//                        .anyRequest().authenticated()
                 )
 
                 // [로컬 개발 - 이대수] H2 콘솔은 화면을 iframe 으로 그리므로 같은 주소의 iframe 은 허용한다
@@ -65,8 +65,8 @@ public class SecurityConfig {
 
 //        // [JWT 로그인 - 이대수] "Authorization: Bearer <accessToken>" 헤더를 JwtConfig 의 JwtDecoder 로 검사한다
 //        // 토큰이 없거나, 서명이 틀리거나, 만료되면 401 을 돌려준다
-        http.oauth2ResourceServer(resourceServer -> resourceServer
-                .jwt(Customizer.withDefaults()));
+//        http.oauth2ResourceServer(resourceServer -> resourceServer
+//                .jwt(Customizer.withDefaults()));
 
         return http.build();
     }
@@ -88,13 +88,11 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // [1번 임시 - 이대수] 회원 UUID 를 보내는 X-Member-Id 헤더 허용
-//        config.setAllowedHeaders(List.of("Content-Type", "X-Member-Id"));
-//      // [JWT 로그인 - 이대수] 토큰을 보내는 Authorization 헤더 허용
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedHeaders(List.of("Content-Type", "X-Member-Id"));
+//        // [JWT 로그인 - 이대수] 토큰을 보내는 Authorization 헤더 허용
+//        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
