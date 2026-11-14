@@ -29,6 +29,18 @@ dependencies {
         // Google ID 토큰 검증
         implementation 'com.google.api-client:google-api-client:2.8.1'
 
+        // JWT 토큰 생성 및 검증
+        implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+        // [JWT 로그인 - 이대수] access token(JWT) 발급·검증
+        // - 발급: JwtEncoder (global/security/JwtConfig, JwtTokenProvider)
+        // - 검증: 요청 헤더 "Authorization: Bearer <토큰>" 을 Spring Security 가 자동으로 검사한다
+        implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+
 		implementation 'org.flywaydb:flyway-mysql'
 		compileOnly 'org.projectlombok:lombok'
 		runtimeOnly 'com.h2database:h2'
@@ -37,6 +49,9 @@ dependencies {
 		testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 		testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
 		testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+		// [JWT 로그인 - 이대수] 로그인 흐름 테스트(AuthControllerTest)용
+		testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test'
 		testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'

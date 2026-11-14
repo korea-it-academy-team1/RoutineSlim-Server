@@ -16,4 +16,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     // 이메일 중복 여부 확인
     boolean existsByEmail(String email);
+
+    // 탈퇴하지 않은 회원 조회
+    Optional<User> findByMemberIdAndDeletedAtIsNull(UUID memberId);
 }
