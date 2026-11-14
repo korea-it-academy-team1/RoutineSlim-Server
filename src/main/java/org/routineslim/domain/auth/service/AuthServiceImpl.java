@@ -65,6 +65,13 @@ public class AuthServiceImpl implements AuthService{
                 new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.")
         );
 
+        // 탈퇴한 회원 로그인 차단
+        if (user.getDeletedAt() != null) {
+            throw new IllegalArgumentException(
+                    "아이디 또는 비밀번호가 올바르지 않습니다."
+            );
+        }
+
         // 소셜 계정은 일반 로그인 사용 불가
         if (socialAccountRepository.existsByMember(user)) {
             throw new IllegalArgumentException("소셜 로그인으로 가입한 계정입니다. 소셜 로그인을 이용해 주세요.");

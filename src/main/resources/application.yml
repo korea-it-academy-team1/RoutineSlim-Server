@@ -15,6 +15,12 @@ spring:
         format_sql: true
         jdbc:
           time_zone: Asia/Seoul
+
+        # [DB - 이대수] UUID 를 항상 BINARY(16) 으로 다룬다 (V1__init.sql 의 member_id 컬럼 형식).
+        # MySQL 은 원래 이 방식이고, 테스트용 H2 는 기본값이 UUID 전용 형식이라 맞춰 준다.
+        type:
+          preferred_uuid_jdbc_type: BINARY
+
   mvc:
     # 에러 응답을 RFC 9457 ProblemDetail(JSON) 형식으로 보낸다
     problemdetails:
@@ -24,6 +30,7 @@ spring:
       # 영수증 이미지 업로드 크기 제한
       max-file-size: 10MB
       max-request-size: 10MB
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -39,3 +46,20 @@ clova:
     secret: ${CLOVA_OCR_SECRET:}
     connect-timeout: 3s
     read-timeout: 15s
+
+# JWT 인증
+jwt:
+  # JWT 서명에 사용할 비밀키
+  secret: ${JWT_SECRET}
+
+# [JWT 로그인 - 이대수] 로그인 토큰 설정 (global/security/JwtProperties 로 읽는다)
+# 서명 키(jwt.secret)는 환경별 파일에 넣는다: local = application-local.yml, prod = 환경 변수 JWT_SECRET
+
+  # access token 수명. 짧을수록 안전하고, 만료되면 refresh token 으로 다시 받는다
+  access-token-validity: 30m
+
+  # refresh token 수명: 로그인 상태 유지를 켰을 때 / 껐을 때
+  refresh-token-validity: 14d
+
+  # Refresh Token 유효기간: 로그인 유지하지 않을 때 1일
+  refresh-token-validity-short: 1d
