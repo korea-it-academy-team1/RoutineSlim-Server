@@ -68,6 +68,10 @@ public class User {
     @Column(name = "notify_time", nullable = false)
     private LocalTime notifyTime = LocalTime.of(9, 0);
 
+    // 월 예산 (원). null 이면 미설정
+    @Column(name = "monthly_budget", columnDefinition = "int unsigned")
+    private Integer monthlyBudget;
+
     // 가입일
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false,
             columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
