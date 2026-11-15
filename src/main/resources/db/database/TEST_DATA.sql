@@ -37,6 +37,7 @@ SELECT member_id FROM member WHERE member_name LIKE 'tester__';
 
 DELETE c FROM comment c JOIN post p ON p.post_id = c.post_id
 WHERE p.member_id IN (SELECT member_id FROM tmp_test_member);
+DELETE FROM comment        WHERE member_id IN (SELECT member_id FROM tmp_test_member);
 DELETE FROM post           WHERE member_id IN (SELECT member_id FROM tmp_test_member);
 DELETE FROM schedule       WHERE member_id IN (SELECT member_id FROM tmp_test_member);
 DELETE FROM expense        WHERE member_id IN (SELECT member_id FROM tmp_test_member);
@@ -301,37 +302,42 @@ CROSS JOIN (
 ) s;
 
 -- -----------------------------------------------------------------------------
--- 12. 커뮤니티 게시글 (post) / 댓글 (comment)
---     지금 post 테이블에는 게시판·서비스·모집 인원 컬럼이 없어 제목·내용만 넣는다
+-- 12. 커뮤니티 게시글 (post) / 댓글 (comment)  ※ Flyway V6 이후 (게시판·파티 정보·조회수·댓글 작성자)
+--     board: PARTY 파티원 모집 / REVIEW 후기 / FREE 자유. 파티 정보는 PARTY 글만 넣는다
 -- -----------------------------------------------------------------------------
-INSERT INTO post (member_id, title, content, created_at)
-SELECT UUID_TO_BIN(CONCAT('019a3c2e-0000-7000-8000-000000000', 100 + r.u)), r.title, r.content,
+INSERT INTO post (member_id, board, title, content, service_name, recruit_status, current_members, max_members,
+                  total_price, price_per_member, settlement_day, view_count, created_at)
+SELECT UUID_TO_BIN(CONCAT('019a3c2e-0000-7000-8000-000000000', 100 + r.u)), r.board, r.title, r.content,
+       r.service_name, IF(r.board = 'PARTY', r.recruit_status, NULL), r.current_members, r.max_members,
+       r.total_price, r.price_per_member, r.settlement_day, r.view_count,
        NOW() - INTERVAL r.hours_ago HOUR
 FROM (
-              SELECT 1 AS u, '넷플릭스 프리미엄 파티원 3명 구해요' AS title, '1인당 4,250원, 매월 15일 정산합니다. 오래 함께하실 분 환영해요.' AS content, 2 AS hours_ago
-    UNION ALL SELECT 2, '왓챠 체험판 써 본 후기', '영화 위주라면 괜찮은데 드라마는 아쉬워요.', 5
-    UNION ALL SELECT 3, 'YouTube Premium 가족 요금제 같이 하실 분', '5명 모집, 1인당 2,980원이에요.', 9
-    UNION ALL SELECT 4, '디즈니+ 일시정지 기능 써 보셨나요?', '한 달 쉬었다가 다시 켜도 기록이 남는지 궁금해요.', 20
-    UNION ALL SELECT 5, '넷플릭스 해지하고 한 달 지났어요', '생각보다 안 아쉽네요. 월 17,000원 아끼는 중!', 26
-    UNION ALL SELECT 6, '구독 정리 팁 공유합니다', '결제일 3일 전 알림 켜 두면 자동 결제 전에 한 번 더 생각하게 돼요.', 30
-    UNION ALL SELECT 7, '음악 앱 뭐 쓰세요?', '바이브랑 스포티파이 고민 중이에요.', 48
-    UNION ALL SELECT 8, '애플 뮤직 무료 체험 중', '체험 끝나기 전에 알림 오는지 확인해 볼게요.', 60
-    UNION ALL SELECT 9, '쿠팡 와우 하나만 남겼어요', '나머지는 다 정리했습니다.', 72
-    UNION ALL SELECT 10, '루틴슬림 처음 써 봐요', '아직 등록한 구독이 없어요. 뭐부터 넣으면 좋을까요?', 1
+              SELECT 1 AS u, 'PARTY' AS board, '넷플릭스 프리미엄 파티원 3명 구해요' AS title, '1인당 4,250원, 매월 15일 정산합니다. 오래 함께하실 분 환영해요.' AS content, '넷플릭스' AS service_name, 'RECRUITING' AS recruit_status, 1 AS current_members, 4 AS max_members, 17000 AS total_price, 4250 AS price_per_member, 15 AS settlement_day, 24 AS view_count, 2 AS hours_ago
+    UNION ALL SELECT 2, 'REVIEW', '왓챠 체험판 써 본 후기', '영화 위주라면 괜찮은데 드라마는 아쉬워요.', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 5
+    UNION ALL SELECT 3, 'PARTY', 'YouTube Premium 가족 요금제 같이 하실 분', '5명 모집, 1인당 2,980원이에요.', 'YouTube Premium', 'RECRUITING', 2, 6, 17900, 2980, 1, 15, 9
+    UNION ALL SELECT 4, 'FREE', '디즈니+ 일시정지 기능 써 보셨나요?', '한 달 쉬었다가 다시 켜도 기록이 남는지 궁금해요.', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 5, 20
+    UNION ALL SELECT 5, 'REVIEW', '넷플릭스 해지하고 한 달 지났어요', '생각보다 안 아쉽네요. 월 17,000원 아끼는 중!', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 31, 26
+    UNION ALL SELECT 6, 'FREE', '구독 정리 팁 공유합니다', '결제일 3일 전 알림 켜 두면 자동 결제 전에 한 번 더 생각하게 돼요.', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 40, 30
+    UNION ALL SELECT 7, 'FREE', '음악 앱 뭐 쓰세요?', '바이브랑 스포티파이 고민 중이에요.', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 48
+    UNION ALL SELECT 8, 'REVIEW', '애플 뮤직 무료 체험 중', '체험 끝나기 전에 알림 오는지 확인해 볼게요.', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 3, 60
+    UNION ALL SELECT 9, 'PARTY', '쿠팡 와우 같이 쓰실 분 (마감)', '인원 다 찼습니다. 감사합니다!', '쿠팡 와우', 'CLOSED', 2, 2, 7890, 3945, 25, 19, 72
+    UNION ALL SELECT 10, 'FREE', '루틴슬림 처음 써 봐요', '아직 등록한 구독이 없어요. 뭐부터 넣으면 좋을까요?', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2, 1
 ) r;
 
-INSERT INTO comment (post_id, content, created_at)
-SELECT p.post_id, c.content, p.created_at + INTERVAL c.minutes_after MINUTE
+-- u: 댓글 작성자 (tester01~10)
+INSERT INTO comment (post_id, member_id, content, created_at)
+SELECT p.post_id, UUID_TO_BIN(CONCAT('019a3c2e-0000-7000-8000-000000000', 100 + c.u)), c.content,
+       p.created_at + INTERVAL c.minutes_after MINUTE
 FROM post p
 JOIN member m ON m.member_id = p.member_id AND m.member_name LIKE 'tester__'
 JOIN (
-              SELECT '넷플릭스 프리미엄 파티원 3명 구해요' AS title, '저 참여할게요!' AS content, 10 AS minutes_after
-    UNION ALL SELECT '넷플릭스 프리미엄 파티원 3명 구해요', '정산은 계좌이체인가요?', 35
-    UNION ALL SELECT 'YouTube Premium 가족 요금제 같이 하실 분', '자리 남았나요?', 15
-    UNION ALL SELECT '구독 정리 팁 공유합니다', '좋은 팁 감사합니다', 60
-    UNION ALL SELECT '음악 앱 뭐 쓰세요?', '스포티파이 추천해요. 추천 알고리즘이 좋아요.', 20
-    UNION ALL SELECT '음악 앱 뭐 쓰세요?', '바이브 쓰는데 국내 음악은 괜찮아요.', 45
-    UNION ALL SELECT '루틴슬림 처음 써 봐요', '매달 나가는 것부터 넣어 보세요!', 5
+              SELECT '넷플릭스 프리미엄 파티원 3명 구해요' AS title, 3 AS u, '저 참여할게요!' AS content, 10 AS minutes_after
+    UNION ALL SELECT '넷플릭스 프리미엄 파티원 3명 구해요', 7, '정산은 계좌이체인가요?', 35
+    UNION ALL SELECT 'YouTube Premium 가족 요금제 같이 하실 분', 5, '자리 남았나요?', 15
+    UNION ALL SELECT '구독 정리 팁 공유합니다', 2, '좋은 팁 감사합니다', 60
+    UNION ALL SELECT '음악 앱 뭐 쓰세요?', 8, '스포티파이 추천해요. 추천 알고리즘이 좋아요.', 20
+    UNION ALL SELECT '음악 앱 뭐 쓰세요?', 4, '바이브 쓰는데 국내 음악은 괜찮아요.', 45
+    UNION ALL SELECT '루틴슬림 처음 써 봐요', 1, '매달 나가는 것부터 넣어 보세요!', 5
 ) c ON c.title = p.title;
 
 -- -----------------------------------------------------------------------------
