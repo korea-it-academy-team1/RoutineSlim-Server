@@ -1,5 +1,6 @@
 package org.routineslim.domain.user.service;
 
+import org.routineslim.domain.user.dto.MonthlyBudgetRequestDTO;
 import org.routineslim.domain.user.dto.NotificationSettingsRequestDTO;
 import org.routineslim.domain.user.dto.UserDTO;
 import org.routineslim.domain.user.dto.UserResponseDTO;
@@ -22,4 +23,7 @@ public interface UserService {
 
     // 알림 수정
     void  updateNotificationSettings(UUID memberId, NotificationSettingsRequestDTO requestDTO);
+
+    // 월 예산 수정 (null 이면 해제)
+    void updateMonthlyBudget(UUID memberId, MonthlyBudgetRequestDTO monthlyBudgetRequestDTO);
 }

@@ -2,6 +2,7 @@ package org.routineslim.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.routineslim.domain.user.dto.MonthlyBudgetRequestDTO;
 import org.routineslim.domain.user.dto.NotificationSettingsRequestDTO;
 import org.routineslim.domain.user.dto.UserDTO;
 import org.routineslim.domain.user.dto.UserResponseDTO;
@@ -42,6 +43,7 @@ public class UserServiceImpl implements UserService{
                 .phone(user.getPhone())
                 .defaultNotificationDays(user.getDefaultNotifyDays())
                 .notificationTime(user.getNotifyTime())
+                .monthlyBudget(user.getMonthlyBudget())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -133,6 +135,29 @@ public class UserServiceImpl implements UserService{
         // 알림 설정 수정
         user.setDefaultNotifyDays(notificationSettingsRequestDTO.getDefaultNotificationDays());
         user.setNotifyTime(notificationSettingsRequestDTO.getNotificationTime());
+
+        // 회원정보 저장
+        userRepository.save(user);
+    }
+
+    // 월 예산 수정 (null 이면 해제)
+    @Override
+    public void updateMonthlyBudget(UUID memberId, MonthlyBudgetRequestDTO monthlyBudgetRequestDTO) {
+
+        // 탈퇴하지 않은 회원 조회
+        User user = userRepository.findByMemberIdAndDeletedAtIsNull(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("회원을 찾을 수 없습니다.")
+                );
+
+        // 예산 범위 검사 (1원 ~ 1억 원, null 은 해제)
+        Integer monthlyBudget = monthlyBudgetRequestDTO.getMonthlyBudget();
+        if (monthlyBudget != null && (monthlyBudget < 1 || monthlyBudget > 100_000_000)) {
+            throw new IllegalArgumentException("월 예산은 1원 ~ 1억 원 사이여야 합니다.");
+        }
+
+        // 월 예산 수정
+        user.setMonthlyBudget(monthlyBudget);
 
         // 회원정보 저장
         userRepository.save(user);

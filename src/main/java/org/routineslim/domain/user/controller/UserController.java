@@ -2,6 +2,7 @@ package org.routineslim.domain.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.routineslim.domain.user.dto.MonthlyBudgetRequestDTO;
 import org.routineslim.domain.user.dto.NotificationSettingsRequestDTO;
 import org.routineslim.domain.user.dto.UserDTO;
 import org.routineslim.domain.user.dto.UserResponseDTO;
@@ -69,5 +70,16 @@ public class UserController {
 
         // Service에 알림 설정 수정 요청
         userService.updateNotificationSettings(memberId, notificationSettingsRequestDTO);
+    }
+
+    // 월 예산 수정
+    // 예) PUT /users/monthly-budget  {"monthlyBudget": 100000}  (null 이면 해제)
+    @PutMapping("/monthly-budget")
+    public void updateMonthlyBudget(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @RequestBody MonthlyBudgetRequestDTO monthlyBudgetRequestDTO) {
+
+        // Service에 월 예산 수정 요청
+        userService.updateMonthlyBudget(memberId, monthlyBudgetRequestDTO);
     }
 }
