@@ -34,6 +34,9 @@ public class UserDTO {
     // 알림 시간
     private LocalTime notificationTime;
 
+    // 월 예산 (원). null 이면 미설정
+    private Integer monthlyBudget;
+
     // 가입일
     private LocalDateTime createdAt;
 
