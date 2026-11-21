@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.routineslim.domain.device.entity.Device;
 import org.routineslim.domain.device.repository.DeviceRepository;
+import org.routineslim.domain.device.repository.NotificationDeliveryRepository;
 import org.routineslim.domain.device.repository.NotificationSubscriptionRepository;
 import org.routineslim.domain.subscription.entity.Subscription;
 import org.routineslim.domain.subscription.entity.SubscriptionStatus;
 import org.routineslim.domain.user.entity.User;
 import org.routineslim.domain.user.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,10 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     // 회원의 기기 정보 조회
     private final DeviceRepository deviceRepository;
+    // 결제 알림 발송 이력 조회 및 저장
+    private final NotificationDeliveryRepository notificationDeliveryRepository;
+    // 결제 알림 발송 이력 관리
+    private final NotificationDeliveryService notificationDeliveryService;
 
     // 알림이 활성화된 구독 조회
     @Override
@@ -124,8 +130,8 @@ public class NotificationServiceImpl implements NotificationService {
             // 구독 회원 ID 조회
             UUID memberId = subscription.getMemberId();
 
-            // 회원의 FCM 토큰 목록 조회
-            List<String> fcmTokens = getFcmTokens(memberId);
+            // 회원의 알림 수신 가능 기기 목록 조회
+            List<Device> devices  = getNotificationDevices(memberId);
 
             // 알림 제목 생성
             String title = "RoutineSlim 결제 알림";
@@ -136,35 +142,78 @@ public class NotificationServiceImpl implements NotificationService {
                     + "입니다.";
 
             // 회원이 등록한 기기에 알림 발송
-            for (String fcmToken : fcmTokens) {
+            for (Device  device  : devices) {
 
+                // 발송 이력 번호
+                Long deliveryId;
+
+                // Firebase 전송 전에 발송 이력 등록
                 try {
-                    sendPushNotification(fcmToken, title, body);
+                    deliveryId = notificationDeliveryService.createProcessingDelivery(
+                            subscription.getId(),
+                            subscription.getNextBillingDate(),
+                            device.getDeviceId()
+                    );
+
+                } catch (DataIntegrityViolationException e) {
+                    // Firebase 전송 실패 시 FAILED로 변경
+
+                    // 동일한 발송 이력이 이미 존재하는지 확인
+                    boolean alreadyExists = notificationDeliveryRepository
+                            .existsBySubscriptionIdAndBillingDateAndDeviceId(
+                                    subscription.getId(),
+                                    subscription.getNextBillingDate(),
+                                    device.getDeviceId()
+                            );
+
+                    if (!alreadyExists) {
+                        throw e;
+                    }
+
+                    // 중복 알림은 전송하지 않음
+                    log.info("중복 알림 건너뛰기 - 구독 ID: {}, 기기 ID: {}",
+                            subscription.getId(), device.getDeviceId());
+
+                    continue;
+                }
+
+                // Firebase 알림 전송
+                try {
+                    sendPushNotification(device.getFcmToken(), title, body);
 
                 } catch (Exception e) {
-                    // 한 기기의 전송 실패가 다른 기기에 영향을 주지 않도록 처리
-                    log.error(
-                            "결제 알림 전송 실패 - 회원 ID: {}",
-                            memberId,
-                            e
-                    );
+
+                    // 3. 전송 실패 시 FAILED로 변경
+                    log.error("결제 알림 전송 실패 - 회원 ID: {}, 기기 ID: {}",
+                            memberId, device.getDeviceId(), e);
+
+                    notificationDeliveryService.markAsFailed(deliveryId);
+                    continue;
                 }
+
+                // Firebase 전송 성공 시 SENT로 변경
+                notificationDeliveryService.markAsSent(deliveryId);
             }
         }
     }
 
-    // 회원의 FCM 토큰 조회
-    private List<String> getFcmTokens(UUID memberId) {
+    // 회원의 알림 수신 가능 기기 조회
+    private List<Device> getNotificationDevices(UUID memberId) {
 
         // 회원이 등록한 기기 조회
         return deviceRepository.findByMemberId(memberId)
                 .stream()
 
-                // 각 기기에서 FCM 토큰 추출
-                .map(Device::getFcmToken)
+                // 알림 수신을 허용한 기기만 조회
+                .filter(device ->
+                        Boolean.TRUE.equals(device.getNotificationEnabled())
+                )
 
-                // 토큰이 없거나 비어 있으면 제외
-                .filter(token -> token != null && !token.isBlank())
+                // FCM 토큰이 없는 기기 제외
+                .filter(device ->
+                        device.getFcmToken() != null
+                                && !device.getFcmToken().isBlank()
+                )
 
                 // 토큰 목록 반환
                 .toList();
