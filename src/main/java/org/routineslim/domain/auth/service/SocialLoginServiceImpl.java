@@ -10,6 +10,8 @@ import org.routineslim.domain.auth.repository.SocialAccountRepository;
 import org.routineslim.domain.auth.service.verifier.GoogleTokenVerifier;
 import org.routineslim.domain.auth.service.verifier.KakaoTokenVerifier;
 import org.routineslim.domain.auth.service.verifier.NaverTokenVerifier;
+import org.routineslim.domain.auth.service.verifier.SocialTokenExchanger;
+import org.springframework.web.client.RestClientException;
 import org.routineslim.domain.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class SocialLoginServiceImpl implements SocialLoginService{
     private final GoogleTokenVerifier googleTokenVerifier;
     private final KakaoTokenVerifier kakaoTokenVerifier;
     private final NaverTokenVerifier naverTokenVerifier;
+    private final SocialTokenExchanger socialTokenExchanger;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,10 +45,19 @@ public class SocialLoginServiceImpl implements SocialLoginService{
 
         // 프론트엔드에서 전달한 토큰 가져오기
         String token = socialLoginRequestDTO.getToken();
+        String code = socialLoginRequestDTO.getCode();
 
         // 제공업체 구분
         if (provider == null) {
             throw new IllegalArgumentException("소셜 로그인 제공업체가 없습니다.");
+        }
+
+        // [소셜 로그인 - 권기쁨] 카카오·네이버: 토큰 대신 인가 코드를 받으면 서버가 토큰으로 바꾼다
+        if ((token == null || token.isBlank()) && code != null && !code.isBlank()) {
+            token = socialTokenExchanger.exchange(
+                    provider, code,
+                    socialLoginRequestDTO.getRedirectUri(),
+                    socialLoginRequestDTO.getState());
         }
 
         if (token == null || token.isBlank()) {
@@ -53,14 +65,21 @@ public class SocialLoginServiceImpl implements SocialLoginService{
         }
 
         // 업체별 토큰 검증 후 사용자 ID 가져오기
-        SocialUserInfoDTO userInfo = switch (provider) {
+        SocialUserInfoDTO userInfo;
+        try {
+            final String accessToken = token;
+            userInfo = switch (provider) {
 
-            case GOOGLE -> googleTokenVerifier.verify(token);
+                case GOOGLE -> googleTokenVerifier.verify(accessToken);
 
-            case KAKAO -> kakaoTokenVerifier.verify(token);
+                case KAKAO -> kakaoTokenVerifier.verify(accessToken);
 
-            case NAVER -> naverTokenVerifier.verify(token);
-        };
+                case NAVER -> naverTokenVerifier.verify(accessToken);
+            };
+        } catch (RestClientException e) {
+            // [소셜 로그인 - 권기쁨] 만료·잘못된 토큰이면 업체 API 가 401 을 준다 → 500 대신 400 으로 안내
+            throw new IllegalArgumentException("소셜 로그인 정보를 확인하지 못했습니다. 다시 로그인해 주세요.");
+        }
 
         // 검증된 사용자 ID 가져오기
         String providerUserId = userInfo.getProviderUserId();

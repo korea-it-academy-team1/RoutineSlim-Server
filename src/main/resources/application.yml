@@ -47,6 +47,16 @@ clova:
     connect-timeout: 3s
     read-timeout: 15s
 
+# [소셜 로그인 - 권기쁨] 카카오·네이버 인가 코드 → 토큰 교환용 키 (SocialTokenExchanger)
+# 값은 application-local.yml 또는 서버 환경 변수로 넣는다. 비어 있으면 해당 소셜 로그인만 400 으로 안내한다.
+social:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:}          # 카카오 REST API 키
+    client-secret: ${KAKAO_CLIENT_SECRET:}  # 콘솔에서 Client Secret "사용함"일 때만
+  naver:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+
 # JWT 인증
 jwt:
   # JWT 서명에 사용할 비밀키
