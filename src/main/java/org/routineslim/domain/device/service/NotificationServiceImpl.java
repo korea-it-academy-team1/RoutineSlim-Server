@@ -156,7 +156,7 @@ public class NotificationServiceImpl implements NotificationService {
                     );
 
                 } catch (DataIntegrityViolationException e) {
-                    // Firebase 전송 실패 시 FAILED로 변경
+                    // 발송 이력 중복 저장 시 예외 처리
 
                     // 동일한 발송 이력이 이미 존재하는지 확인
                     boolean alreadyExists = notificationDeliveryRepository
