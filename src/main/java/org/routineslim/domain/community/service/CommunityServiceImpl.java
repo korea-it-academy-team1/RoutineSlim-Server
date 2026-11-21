@@ -6,11 +6,16 @@ import org.routineslim.domain.community.dto.CommentDTO;
 import org.routineslim.domain.community.dto.CommentRequestDTO;
 import org.routineslim.domain.community.dto.PostDTO;
 import org.routineslim.domain.community.dto.PostRequestDTO;
+import org.routineslim.domain.community.dto.PartyDecisionRequestDTO;
+import org.routineslim.domain.community.dto.PartyRequestDTO;
 import org.routineslim.domain.community.entity.Comment;
+import org.routineslim.domain.community.entity.PartyMember;
+import org.routineslim.domain.community.entity.PartyMemberStatus;
 import org.routineslim.domain.community.entity.Post;
 import org.routineslim.domain.community.entity.PostBoard;
 import org.routineslim.domain.community.entity.RecruitStatus;
 import org.routineslim.domain.community.repository.CommentRepository;
+import org.routineslim.domain.community.repository.PartyMemberRepository;
 import org.routineslim.domain.community.repository.PostRepository;
 import org.routineslim.domain.user.entity.User;
 import org.routineslim.domain.user.repository.UserRepository;
@@ -39,18 +44,23 @@ public class CommunityServiceImpl implements CommunityService {
     private static final int MAX_PARTY_MEMBERS = 10;
     private static final int MAX_PRICE = 10_000_000;
 
+    // '참여 중인 파티'에 보여 줄 상태 (거절된 요청은 빠진다)
+    private static final List<PartyMemberStatus> JOINED_STATUSES =
+            List.of(PartyMemberStatus.REQUESTED, PartyMemberStatus.ACCEPTED);
+
     private static final String UNKNOWN_AUTHOR = "알 수 없음";
     private static final String WITHDRAWN_AUTHOR = "탈퇴한 회원";
 
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final PartyMemberRepository partyMemberRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
     // 게시글 목록 (board 가 null 이면 전체, 최신순)
     @Override
     @Transactional(readOnly = true)
-    public List<PostDTO> getPosts(UUID memberId, String board, int page, int size) {
+    public List<PostDTO> getPosts(UUID memberId, String board, String scope, int page, int size) {
 
         // 페이지 확인
         if (page < 0) {
@@ -61,26 +71,23 @@ public class CommunityServiceImpl implements CommunityService {
         }
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        // 게시판별 또는 전체 조회
-        List<Post> posts = (board == null || board.isBlank())
-                ? postRepository.findAllByOrderByCreatedAtDescPostIdDesc(pageRequest)
-                : postRepository.findByBoardOrderByCreatedAtDescPostIdDesc(parseBoard(board), pageRequest);
-
-        if (posts.isEmpty()) {
-            return List.of();
+        List<Post> posts;
+        if (scope != null && !scope.isBlank()) {
+            // 마이 > 커뮤니티 활동
+            posts = switch (scope.trim()) {
+                case "MINE" -> postRepository.findByMemberIdOrderByCreatedAtDescPostIdDesc(memberId, pageRequest);
+                case "COMMENTED" -> postRepository.findCommentedBy(memberId, pageRequest);
+                case "JOINED" -> postRepository.findJoinedBy(memberId, JOINED_STATUSES, pageRequest);
+                default -> throw new IllegalArgumentException("scope 는 MINE, COMMENTED, JOINED 중 하나여야 합니다.");
+            };
+        } else {
+            // 게시판별 또는 전체 조회
+            posts = (board == null || board.isBlank())
+                    ? postRepository.findAllByOrderByCreatedAtDescPostIdDesc(pageRequest)
+                    : postRepository.findByBoardOrderByCreatedAtDescPostIdDesc(parseBoard(board), pageRequest);
         }
 
-        // 댓글 수·작성자 이름을 한 번에 조회 (게시글마다 따로 조회하지 않는다)
-        List<Long> postIds = posts.stream().map(Post::getPostId).toList();
-        Map<Long, Long> commentCounts = new HashMap<>();
-        for (Object[] row : commentRepository.countByPostIds(postIds)) {
-            commentCounts.put((Long) row[0], (Long) row[1]);
-        }
-        Map<UUID, User> authors = findUsers(posts.stream().map(Post::getMemberId).toList());
-
-        return posts.stream()
-                .map(post -> toDTO(post, memberId, authors, commentCounts.getOrDefault(post.getPostId(), 0L)))
-                .toList();
+        return toDTOs(posts, memberId);
     }
 
     // 게시글 상세
@@ -122,6 +129,19 @@ public class CommunityServiceImpl implements CommunityService {
         // 입력값 확인 후 반영
         applyRequest(post, postRequestDTO, false);
 
+        // 참여 요청이 있는 파티 글은 다른 게시판으로 옮길 수 없다
+        if (post.getBoard() != PostBoard.PARTY && partyMemberRepository.existsByPostId(postId)) {
+            throw new IllegalArgumentException("참여 요청이 있는 파티원 모집 글은 게시판을 바꿀 수 없습니다.");
+        }
+        // 현재 인원은 작성자 + 수락한 파티원보다 적을 수 없다
+        if (post.getBoard() == PostBoard.PARTY) {
+            long accepted = partyMemberRepository.countByPostIdAndStatus(postId, PartyMemberStatus.ACCEPTED);
+            if (post.getCurrentMembers() < 1 + accepted) {
+                throw new IllegalArgumentException(
+                        "현재 인원은 작성자와 수락한 파티원 수(" + (1 + accepted) + "명) 이상이어야 합니다.");
+            }
+        }
+
         // DB 저장
         return toDTO(postRepository.saveAndFlush(post), memberId);
     }
@@ -133,8 +153,9 @@ public class CommunityServiceImpl implements CommunityService {
         Post post = findPost(postId);
         checkWriter(post.getMemberId(), memberId, "게시글");
 
-        // comment 가 post 를 FK 로 참조하므로 댓글부터 삭제
+        // comment·party_member 가 post 를 FK 로 참조하므로 먼저 삭제
         commentRepository.deleteByPostId(postId);
+        partyMemberRepository.deleteByPostId(postId);
         postRepository.delete(post);
     }
 
@@ -198,7 +219,150 @@ public class CommunityServiceImpl implements CommunityService {
         commentRepository.delete(comment);
     }
 
+    // 파티 참여 요청
+    @Override
+    public PostDTO requestParty(UUID memberId, Long postId) {
+
+        userRepository.findByMemberIdAndDeletedAtIsNull(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+        Post post = findPartyPost(postId);
+
+        if (post.getMemberId().equals(memberId)) {
+            throw new IllegalArgumentException("내가 쓴 파티에는 참여 요청을 할 수 없습니다.");
+        }
+
+        Optional<PartyMember> existing = partyMemberRepository.findByPostIdAndMemberId(postId, memberId);
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException(switch (existing.get().getStatus()) {
+                case REQUESTED -> "이미 참여를 요청했습니다.";
+                case ACCEPTED -> "이미 참여 중인 파티입니다.";
+                case REJECTED -> "작성자가 거절한 요청입니다.";
+            });
+        }
+        checkRecruiting(post);
+
+        partyMemberRepository.save(PartyMember.builder()
+                .postId(postId)
+                .memberId(memberId)
+                .status(PartyMemberStatus.REQUESTED)
+                .createdAt(LocalDateTime.now(clock).withNano(0))
+                .build());
+
+        return toDTO(post, memberId);
+    }
+
+    // 파티 참여 요청 취소 / 파티 나가기 (수락된 상태였으면 현재 인원 -1)
+    @Override
+    public PostDTO cancelParty(UUID memberId, Long postId) {
+
+        Post post = findPartyPost(postId);
+        PartyMember partyMember = partyMemberRepository.findByPostIdAndMemberId(postId, memberId)
+                .orElseThrow(() -> new IllegalArgumentException("참여 요청한 파티가 아닙니다."));
+
+        if (partyMember.getStatus() == PartyMemberStatus.REJECTED) {
+            throw new IllegalArgumentException("거절된 요청은 취소할 수 없습니다.");
+        }
+        if (partyMember.getStatus() == PartyMemberStatus.ACCEPTED) {
+            post.setCurrentMembers(Math.max(1, post.getCurrentMembers() - 1));
+        }
+        partyMemberRepository.delete(partyMember);
+
+        return toDTO(post, memberId);
+    }
+
+    // 파티 참여 요청 목록 (작성자만, 요청 순)
+    @Override
+    @Transactional(readOnly = true)
+    public List<PartyRequestDTO> getPartyRequests(UUID memberId, Long postId) {
+
+        Post post = findPartyPost(postId);
+        checkPartyOwner(post, memberId);
+
+        List<PartyMember> requests = partyMemberRepository.findByPostIdOrderByCreatedAtAscPartyMemberIdAsc(postId);
+        Map<UUID, User> users = findUsers(requests.stream().map(PartyMember::getMemberId).toList());
+
+        return requests.stream()
+                .map(request -> toPartyRequestDTO(request, users))
+                .toList();
+    }
+
+    // 파티 참여 요청 수락·거절 (작성자만)
+    // 수락: 현재 인원 +1, 다 차면 모집 완료. 수락했던 파티원을 거절로 바꾸면 현재 인원 -1 (내보내기)
+    @Override
+    public PartyRequestDTO decidePartyRequest(UUID memberId, Long postId, Long requestId,
+                                              PartyDecisionRequestDTO request) {
+
+        Post post = findPartyPost(postId);
+        checkPartyOwner(post, memberId);
+
+        PartyMember partyMember = partyMemberRepository.findById(requestId)
+                .filter(found -> found.getPostId().equals(postId))
+                .orElseThrow(() -> new IllegalArgumentException("참여 요청을 찾을 수 없습니다."));
+
+        PartyMemberStatus decision = parseDecision(request == null ? null : request.getStatus());
+        PartyMemberStatus current = partyMember.getStatus();
+
+        if (decision == current) {
+            throw new IllegalArgumentException(decision == PartyMemberStatus.ACCEPTED
+                    ? "이미 수락한 요청입니다." : "이미 거절한 요청입니다.");
+        }
+
+        if (decision == PartyMemberStatus.ACCEPTED) {
+            if (current != PartyMemberStatus.REQUESTED) {
+                throw new IllegalArgumentException("거절한 요청은 수락할 수 없습니다.");
+            }
+            checkRecruiting(post);
+            post.setCurrentMembers(post.getCurrentMembers() + 1);
+            if (post.getCurrentMembers() >= post.getMaxMembers()) {
+                post.setRecruitStatus(RecruitStatus.CLOSED);
+            }
+        } else if (current == PartyMemberStatus.ACCEPTED) {
+            post.setCurrentMembers(Math.max(1, post.getCurrentMembers() - 1));
+        }
+
+        partyMember.setStatus(decision);
+        partyMemberRepository.save(partyMember);
+
+        return toPartyRequestDTO(partyMember, findUsers(List.of(partyMember.getMemberId())));
+    }
+
     // ------------------------------------------------------------------------
+
+    // 파티원 모집 글 조회 (없거나 파티 글이 아니면 400)
+    private Post findPartyPost(Long postId) {
+        Post post = findPost(postId);
+        if (post.getBoard() != PostBoard.PARTY) {
+            throw new IllegalArgumentException("파티원 모집 글이 아닙니다.");
+        }
+        return post;
+    }
+
+    // 모집 중이고 자리가 남았는지
+    private void checkRecruiting(Post post) {
+        if (post.getRecruitStatus() != RecruitStatus.RECRUITING) {
+            throw new IllegalArgumentException("모집이 마감된 파티입니다.");
+        }
+        if (post.getCurrentMembers() >= post.getMaxMembers()) {
+            throw new IllegalArgumentException("모집 인원이 다 찼습니다.");
+        }
+    }
+
+    // 파티 글 작성자인지
+    private void checkPartyOwner(Post post, UUID memberId) {
+        if (!post.getMemberId().equals(memberId)) {
+            throw new IllegalArgumentException("파티를 모집한 회원만 참여 요청을 볼 수 있습니다.");
+        }
+    }
+
+    private PartyMemberStatus parseDecision(String status) {
+        if ("ACCEPTED".equals(status)) {
+            return PartyMemberStatus.ACCEPTED;
+        }
+        if ("REJECTED".equals(status)) {
+            return PartyMemberStatus.REJECTED;
+        }
+        throw new IllegalArgumentException("status 는 ACCEPTED, REJECTED 중 하나여야 합니다.");
+    }
 
     // 요청 값 확인 후 엔티티에 반영
     private void applyRequest(Post post, PostRequestDTO request, boolean creating) {
@@ -336,14 +500,57 @@ public class CommunityServiceImpl implements CommunityService {
         return user.getName();
     }
 
-    // 엔티티 → DTO (상세·작성·수정)
+    // 엔티티 → DTO (상세·작성·수정·참여)
     private PostDTO toDTO(Post post, UUID memberId) {
-        return toDTO(post, memberId, findUsers(List.of(post.getMemberId())),
-                commentRepository.countByPostId(post.getPostId()));
+        return toDTOs(List.of(post), memberId).get(0);
+    }
+
+    // 엔티티 여러 개 → DTO. 댓글 수·작성자·참여 정보를 한 번에 조회한다 (게시글마다 따로 조회하지 않는다)
+    private List<PostDTO> toDTOs(List<Post> posts, UUID memberId) {
+        if (posts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> postIds = posts.stream().map(Post::getPostId).toList();
+        Map<Long, Long> commentCounts = toCountMap(commentRepository.countByPostIds(postIds));
+        Map<UUID, User> authors = findUsers(posts.stream().map(Post::getMemberId).toList());
+
+        // 내 참여 상태
+        Map<Long, PartyMemberStatus> myStatuses = partyMemberRepository.findByMemberIdAndPostIdIn(memberId, postIds)
+                .stream()
+                .collect(Collectors.toMap(PartyMember::getPostId, PartyMember::getStatus));
+
+        // 내가 쓴 파티 글의 확인 안 한 요청 수
+        List<Long> myPartyPostIds = posts.stream()
+                .filter(post -> post.getBoard() == PostBoard.PARTY && post.getMemberId().equals(memberId))
+                .map(Post::getPostId)
+                .toList();
+        Map<Long, Long> pendingCounts = myPartyPostIds.isEmpty()
+                ? Map.of()
+                : toCountMap(partyMemberRepository.countByPostIdsAndStatus(myPartyPostIds, PartyMemberStatus.REQUESTED));
+
+        return posts.stream()
+                .map(post -> toDTO(post, memberId, authors,
+                        commentCounts.getOrDefault(post.getPostId(), 0L),
+                        myStatuses.get(post.getPostId()),
+                        myPartyPostIds.contains(post.getPostId())
+                                ? pendingCounts.getOrDefault(post.getPostId(), 0L)
+                                : null))
+                .toList();
+    }
+
+    // [게시글 번호, 수] 목록 → Map
+    private Map<Long, Long> toCountMap(List<Object[]> rows) {
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            counts.put((Long) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     // 엔티티 → DTO
-    private PostDTO toDTO(Post post, UUID memberId, Map<UUID, User> authors, long commentCount) {
+    private PostDTO toDTO(Post post, UUID memberId, Map<UUID, User> authors, long commentCount,
+                          PartyMemberStatus myPartyStatus, Long pendingRequestCount) {
         return PostDTO.builder()
                 .postId(post.getPostId())
                 .board(post.getBoard())
@@ -362,6 +569,19 @@ public class CommunityServiceImpl implements CommunityService {
                 .totalPrice(post.getTotalPrice())
                 .pricePerMember(post.getPricePerMember())
                 .settlementDay(post.getSettlementDay())
+                .myPartyStatus(myPartyStatus)
+                .pendingRequestCount(pendingRequestCount)
+                .build();
+    }
+
+    // 파티 참여 엔티티 → DTO
+    private PartyRequestDTO toPartyRequestDTO(PartyMember partyMember, Map<UUID, User> users) {
+        return PartyRequestDTO.builder()
+                .requestId(partyMember.getPartyMemberId())
+                .postId(partyMember.getPostId())
+                .memberName(authorName(partyMember.getMemberId(), users))
+                .status(partyMember.getStatus())
+                .createdAt(partyMember.getCreatedAt())
                 .build();
     }
 
