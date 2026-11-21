@@ -14,6 +14,7 @@ import org.routineslim.domain.subscription.entity.Subscription;
 import org.routineslim.domain.user.entity.User;
 import org.routineslim.domain.user.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import java.time.LocalTime;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -270,8 +271,11 @@ class NotificationServiceTest {
         when(subscription.getNextBillingDate()).thenReturn(billingDate);
         when(subscription.getNotifyDaysBefore()).thenReturn(3);
 
-        // 3. 회원 객체 생성
+        // 회원 객체 생성
         User user = mock(User.class);
+
+        // 회원 알림 시간을 자정으로 설정하여 날짜 계산 테스트에 집중
+        when(user.getNotifyTime()).thenReturn(LocalTime.MIDNIGHT);
 
         // 4. 구독 조회 결과 설정
         when(notificationSubscriptionRepository
@@ -316,6 +320,9 @@ class NotificationServiceTest {
 
         // 회원 기본 알림 설정: 3일 전
         when(user.getDefaultNotifyDays()).thenReturn(3);
+
+        // 회원 알림 시간을 자정으로 설정
+        when(user.getNotifyTime()).thenReturn(LocalTime.MIDNIGHT);
 
         // 4. 구독 조회 결과 설정
         when(notificationSubscriptionRepository

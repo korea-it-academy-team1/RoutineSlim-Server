@@ -16,8 +16,8 @@ public class NotificationScheduler {
 
     private final NotificationService notificationService;
 
-    // 매일 오전 9시에 자동 실행 (한국 시간 기준)
-    @Scheduled(fixedDelay = 30000)
+    // 매분 0초에 실행 (한국 시간 기준)
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendDailyNotifications() {
 
         // 한국 시간 기준 오늘 날짜
@@ -35,8 +35,8 @@ public class NotificationScheduler {
 
         log.info("오늘 결제 알림 대상 구독 수: {}", targetCount);
 
-        // 실제 알림 발송은 중복 방지 기능 구현 후 활성화
-        // notificationService.sendPaymentNotifications(today);
+//        // 결제 예정 알림 발송
+//        notificationService.sendPaymentNotifications(today);
     }
 
 }

@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.firebase.messaging.Notification;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,8 +82,24 @@ public class NotificationServiceImpl implements NotificationService {
                             subscription.getNextBillingDate()
                                     .minusDays(notifyDaysBefore);
 
-                    // 오늘이 알림 날짜인지 확인
-                    return notificationDate.equals(today);
+                    // 오늘이 알림 날짜가 아니면 제외
+                    if (!notificationDate.equals(today)) {
+                        return false;
+                    }
+
+                    // 한국 시간 기준 현재 시간
+                    LocalTime now = LocalTime.now(ZoneId.of("Asia/Seoul"));
+
+                    // 회원이 설정한 알림 시간
+                    LocalTime notifyTime = user.getNotifyTime();
+
+                    // 알림 시간이 아직 되지 않았으면 제외
+                    if (notifyTime == null || now.isBefore(notifyTime)) {
+                        return false;
+                    }
+
+                    // 알림 날짜와 시간이 모두 충족되면 대상에 포함
+                    return true;
 
                 })
                 .toList();
