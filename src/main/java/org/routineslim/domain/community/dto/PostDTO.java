@@ -1,6 +1,7 @@
 package org.routineslim.domain.community.dto;
 
 import lombok.*;
+import org.routineslim.domain.community.entity.PartyMemberStatus;
 import org.routineslim.domain.community.entity.PostBoard;
 import org.routineslim.domain.community.entity.RecruitStatus;
 
@@ -65,4 +66,10 @@ public class PostDTO {
 
     // 매월 정산일
     private Integer settlementDay;
+
+    // 내 참여 상태 (REQUESTED, ACCEPTED, REJECTED). 요청한 적 없거나 내 글이면 null
+    private PartyMemberStatus myPartyStatus;
+
+    // 확인 안 한 참여 요청 수. 내가 쓴 파티 글만 값이 있다
+    private Long pendingRequestCount;
 }
